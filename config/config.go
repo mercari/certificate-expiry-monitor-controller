@@ -26,6 +26,12 @@ type Env struct {
 	// Configration for Slack
 	SlackToken   string `envconfig:"SLACK_TOKEN"`
 	SlackChannel string `envconfig:"SLACK_CHANNEL"`
+	// Configuration for Datadog
+	DatadogToken   string `envconfig:"DATADOG_TOKEN"`
+	DatadogAddress string `envconfig:"DATADOG_ADDRESS"`
+	// Datadog tags in the format 'environment:test,host:local'
+	DatadogTags     string `envconfig:"DATADOG_TAGS"`
+	DatadogGaugeKey string `envconfig:"DATADOG_GAUGEKEY"`
 }
 
 // ParseEnv function sets to Env struct and verify it.

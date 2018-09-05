@@ -51,3 +51,7 @@
 [[constraint]]
   name = "go.uber.org/zap"
   version = "1.9.1"
+
+[[constraint]]
+  name = "github.com/DataDog/datadog-go"
+  version = "2.1.0"

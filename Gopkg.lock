@@ -10,6 +10,14 @@
   version = "v0.26.0"
 
 [[projects]]
+  digest = "1:e64fddc819e2abc68792a743dd857c379449a56f2b9eaf030c03fb0ec19de884"
+  name = "github.com/DataDog/datadog-go"
+  packages = ["statsd"]
+  pruneopts = ""
+  revision = "e67964b4021ad3a334e748e8811eb3cd6becbc6e"
+  version = "2.1.0"
+
+[[projects]]
   digest = "1:b13707423743d41665fd23f0c36b2f37bb49c30e94adb813319c44188a51ba22"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -484,6 +492,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/DataDog/datadog-go/statsd",
     "github.com/kelseyhightower/envconfig",
     "github.com/nlopes/slack",
     "go.uber.org/ratelimit",

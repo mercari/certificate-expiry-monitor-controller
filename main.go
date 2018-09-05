@@ -10,6 +10,7 @@ import (
 	"github.com/mercari/certificate-expiry-monitor-controller/controller"
 	logging "github.com/mercari/certificate-expiry-monitor-controller/log"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier"
+	"github.com/mercari/certificate-expiry-monitor-controller/notifier/datadog"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/log"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/slack"
 
@@ -59,6 +60,14 @@ func runMain() int {
 			}
 
 			notifiers[i] = log.NewNotifier(logger)
+		case datadog.String():
+			dd, err := datadog.NewNotifier(env.DatadogToken, env.DatadogAddress, env.DatadogTags, env.DatadogGaugeKey)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[ERROR] Failed to create datadog notifier: %s\n", err.Error())
+				return 1
+			}
+
+			notifiers[i] = dd
 		default:
 			fmt.Fprintf(os.Stderr, "[ERROR] Unexpected notifier name: %s\n", name)
 			return 1
