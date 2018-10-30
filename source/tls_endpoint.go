@@ -3,6 +3,7 @@ package source
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"strings"
 )
 
 var (
@@ -36,7 +37,10 @@ func NewTLSEndpoint(host string, port string) *TLSEndpoint {
 
 // GetCertificates tries to get certificates from endpoint using tls.Dial
 func (e *TLSEndpoint) GetCertificates() ([]*x509.Certificate, error) {
-	conn, err := tls.Dial("tcp", e.Hostname+":"+e.Port, &defaultTLSConfig)
+
+	// We cannot connect to Hostnames with wildcards, so replacing with www.
+	hostName := strings.Replace(e.Hostname, "*", "www", -1)
+	conn, err := tls.Dial("tcp", hostName+":"+e.Port, &defaultTLSConfig)
 	if err != nil {
 		return nil, err
 	}
