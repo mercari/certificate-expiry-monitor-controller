@@ -26,6 +26,9 @@ type Env struct {
 	// Configration for Slack
 	SlackToken   string `envconfig:"SLACK_TOKEN"`
 	SlackChannel string `envconfig:"SLACK_CHANNEL"`
+
+	// Configration for Teams
+	TeamsWebhook string `envconfig:"TEAMS_WEBHOOK"`
 }
 
 // ParseEnv function sets to Env struct and verify it.
