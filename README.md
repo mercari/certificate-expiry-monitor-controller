@@ -41,6 +41,7 @@ If the expiration is expired or the expiration reaches the threshold, the contro
 In latest version, the contoller supports following notifiers.
 
 - `slack`: Send information to `SLACK_CHANNEL` in your workspace using `SLACK_TOKEN`.
+- `teams`: Send information to `TEAMS_WEBHOOK`.
 - `log`: Print information to `stderr`.
 
 You can select which notifier to send an alert by configuration.
@@ -56,9 +57,10 @@ You can set following configurations by environment variables.
 | `KUBE_CONFIG_PATH` | false    | `~/.kube/config` | `~/.kube/config`      | Kubernetes cluster config (If not configured, controller reads local cluster config).                                                                                     |
 | `INTERVAL`         | false    | `12h`            | `1m`, `24h`,          | Controller verifies expiration of certificate in Ingress at this interval of time. This value must be between `1m` and `24h`.                                             |
 | `THRESHOLD`        | false    | `336h` (2 weeks) | `24h`, `100h`, `336h` | When verifing expiration, controller compares expiration of certificate and `time.Now() - THRESHOLD` to detect issue.  This value must be greater than or equal to `24h`. |
-| `NOTIFIERS`        | false    | `log`            | `slack,log`           | List of alert notifiers.                                                                                                                                                  |
+| `NOTIFIERS`        | false    | `log`            | `slack,teams,log`     | List of alert notifiers.                                                                                                                                                  |
 | `SLACK_TOKEN`      | false    | -                | -                     | Slack API token.                                                                                                                                                          |
 | `SLACK_CHANNEL`    | false    | -                | `random`              | Slack channel to send expiration alert (without `#`).                                                                                                                     |
+| `TEAMS_WEBHOOK`    | false    | -                | `random`              | Microsoft Teams channel to send expiration alert (without `#`).                                                                |
 
 ## Future works
 
