@@ -50,19 +50,7 @@ func newMessageCard(expiration time.Time, ingress *source.Ingress, tls *source.I
 		preText = fmt.Sprintf("[WARNING] TLS certificate will expire within %d days", days)
 	}
 
-	hosts := make([]string, len(tls.Endpoints))
-	for i, e := range tls.Endpoints {
-		hosts[i] = e.Hostname + ":" + e.Port
-	}
-
-	facts := []MessageFact{
-		{Name: "Cluster", Value: ingress.ClusterName},
-		{Name: "Namespace", Value: ingress.Namespace},
-		{Name: "Ingress", Value: ingress.Name},
-		{Name: "TLS secret name", Value: tls.SecretName},
-		{Name: "Expiration", Value: expiration.Format(time.RFC822)},
-		{Name: "Hosts", Value: strings.Join(hosts, ", ")},
-	}
+	facts := newFactAttachments(ingress, tls, expiration)
 
 	return MessageCard{
 		Context:    messageCardContext,
@@ -75,5 +63,21 @@ func newMessageCard(expiration time.Time, ingress *source.Ingress, tls *source.I
 				Facts: facts,
 			},
 		},
+	}
+}
+
+func newFactAttachments(ingress *source.Ingress, tls *source.IngressTLS, expiration time.Time) []MessageFact {
+	hosts := make([]string, len(tls.Endpoints))
+	for i, e := range tls.Endpoints {
+		hosts[i] = e.Hostname + ":" + e.Port
+	}
+
+	return []MessageFact{
+		{Name: "Cluster", Value: ingress.ClusterName},
+		{Name: "Namespace", Value: ingress.Namespace},
+		{Name: "Ingress", Value: ingress.Name},
+		{Name: "TLS secret name", Value: tls.SecretName},
+		{Name: "Expiration", Value: expiration.Format(time.RFC822)},
+		{Name: "Hosts", Value: strings.Join(hosts, ", ")},
 	}
 }
