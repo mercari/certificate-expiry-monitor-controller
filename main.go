@@ -55,7 +55,7 @@ func runMain() int {
 		case teams.String():
 			sl, err := teams.NewNotifier(env.TeamsWebhook)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "[ERROR] Failed to create slack notifier: %s\n", err.Error())
+				fmt.Fprintf(os.Stderr, "[ERROR] Failed to create ms teams notifier: %s\n", err.Error())
 				return 1
 			}
 

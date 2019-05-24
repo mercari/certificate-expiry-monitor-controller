@@ -87,7 +87,9 @@ func TestNewMessageCard(t *testing.T) {
 	}
 }
 
-func TestNewAttachmentFields(t *testing.T) {
+func TestNewFactAttachments(t *testing.T) {
+	t.Helper()
+
 	expectedFieldCount := 6
 
 	tests := []struct {
