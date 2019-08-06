@@ -6,7 +6,7 @@ defaults: &defaults
 golang: &golang
   <<: *defaults
   docker:
-    - image: golang:1.11
+    - image: golang:1.12
 
 jobs:
   build:
