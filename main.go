@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	synthetics "github.com/lainra/certificate-expiry-monitor-controller/synthetics/datadog"
 	"github.com/mercari/certificate-expiry-monitor-controller/config"
 	"github.com/mercari/certificate-expiry-monitor-controller/controller"
 	logging "github.com/mercari/certificate-expiry-monitor-controller/log"
@@ -72,8 +73,31 @@ func runMain() int {
 		return 1
 	}
 
-	// Create new contoller instance.
-	controller, err := controller.NewController(logger, clientSet, env.VerifyInterval, env.AlertThreshold, notifiers)
+	// Create a new synthetics testManager instance
+	testManager := &synthetics.TestManager{}
+	if env.TestManager {
+		testManager, err = synthetics.NewTestManager(env.DatadogAPIKey, env.DatadogAppKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[ERROR] Failed to create testManager: %s\n", err.Error())
+			return 1
+		}
+		testManager.Logger = logger
+		testManager.CheckInterval = env.CheckInterval
+		testManager.AlertMessage = env.AlertMessage
+		testManager.Tags = env.Tags
+		testManager.DefaultTag = env.DefaultTag
+		testManager.AdditionalEndpoints = env.AdditionalEndpoints
+
+		// Set control flag to prevent running the synthetics logic in the controller when feature-gated
+		testManager.Enabled = true
+
+		fmt.Fprintf(os.Stdout, "TestManager enabled value in main init function %t", testManager.Enabled)
+
+	}
+	fmt.Fprintf(os.Stdout, "TestManager enabled value in main %t", testManager.Enabled)
+
+	// Create new controller instance.
+	controller, err := controller.NewController(logger, clientSet, env.VerifyInterval, env.AlertThreshold, notifiers, testManager)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create controller: %s\n", err.Error())
 		return 1

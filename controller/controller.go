@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	synthetics "github.com/lainra/certificate-expiry-monitor-controller/synthetics/datadog"
+
 	"go.uber.org/zap"
 
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier"
@@ -24,6 +26,7 @@ type Controller struct {
 	VerifyInterval time.Duration
 	AlertThreshold time.Duration
 	Notifiers      []notifier.Notifier
+	TestManager    *synthetics.TestManager
 }
 
 // NewController function validates arguments and
@@ -34,6 +37,7 @@ func NewController(
 	interval time.Duration,
 	threshold time.Duration,
 	notifiers []notifier.Notifier,
+	testManager *synthetics.TestManager,
 ) (*Controller, error) {
 	if clientSet == nil {
 		return nil, errors.New("clientSet must be non nil value")
@@ -49,6 +53,7 @@ func NewController(
 		VerifyInterval: interval,
 		AlertThreshold: threshold,
 		Notifiers:      notifiers,
+		TestManager:    testManager,
 	}, nil
 }
 
@@ -79,11 +84,20 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 	if err != nil {
 		return err
 	}
-
+	c.Logger.Info("Running the controller loop")
 	thresholdTime := currentTime.Add(c.AlertThreshold)
+
+	var endpointList []string
 
 	for _, ingress := range ingresses {
 		for _, tls := range ingress.TLS {
+
+			// Add non overlapping endpoints to a list to manage synthetic tests
+			for _, tlsEndpoint := range tls.Endpoints {
+				if !synthetics.Contains(endpointList, tlsEndpoint.Hostname) {
+					endpointList = append(endpointList, tlsEndpoint.Hostname)
+				}
+			}
 
 			var certificates []*x509.Certificate
 			for _, e := range tls.Endpoints {
@@ -128,6 +142,17 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 				}
 			}
 		}
+	}
+
+	if c.TestManager.Enabled {
+		// Create managed synthetics tests matching the Ingress endpoint list
+		c.Logger.Info("Checking if tests need to be created")
+		endpointList = append(endpointList, c.TestManager.AdditionalEndpoints...)
+		c.TestManager.CreateManagedSyntheticsTests(endpointList)
+
+		c.Logger.Info("Checking if orphaned tests need to be deleted")
+		// Delete managed synthetics tests not matching the Ingress endpoint list
+		c.TestManager.DeleteManagedSyntheticsTests(endpointList)
 	}
 
 	return nil
