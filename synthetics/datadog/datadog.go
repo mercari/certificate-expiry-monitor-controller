@@ -67,18 +67,6 @@ func ContainsColon(slice []string, val string) bool {
 	return false
 }
 
-// ContainsPort return whether a slice contains a specific value
-// func ContainsPort(slice []string, val string, port int) bool {
-// 	for _, n := range slice {
-// 		sPort := strconv.Itoa(port)
-// 		val = val + ":" + sPort
-// 		if val == n {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
 // createManagedSyntheticsTest configures and create a new synthetics test in Datadog
 func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*datadog.SyntheticsTest, error) {
 	newOptions := &datadog.SyntheticsOptions{}
@@ -90,18 +78,12 @@ func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*
 	expiryAssertion.SetOperator("isInMoreThan")
 	expiryAssertion.Target = 12
 
-	cnAssertion := &datadog.SyntheticsAssertion{}
-	cnAssertion.SetType("property")
-	cnAssertion.SetProperty("issuer.CN")
-	cnAssertion.SetOperator("is")
-	cnAssertion.Target = "Let's Encrypt Authority X3"
-
 	newRequest := &datadog.SyntheticsRequest{}
 	newRequest.SetHost(endpoint)
 	newRequest.SetPort(port)
 
 	newConfig := &datadog.SyntheticsConfig{}
-	newConfig.Assertions = []datadog.SyntheticsAssertion{*expiryAssertion, *cnAssertion}
+	newConfig.Assertions = []datadog.SyntheticsAssertion{*expiryAssertion}
 	newConfig.SetRequest(*newRequest)
 
 	tags := tm.Tags

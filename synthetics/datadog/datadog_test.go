@@ -37,8 +37,8 @@ func TestCreateSyntheticsTest(t *testing.T) {
 	client := &fakeClient{
 		t: t,
 		validateCreateSyntheticsTestFunc: func(t *testing.T, syntheticsTest *datadog.SyntheticsTest) (*datadog.SyntheticsTest, error) {
-			if len(syntheticsTest.GetConfig().Assertions) != 2 {
-				t.Fatalf("got %v, want %v", len(syntheticsTest.GetConfig().Assertions), 2)
+			if len(syntheticsTest.GetConfig().Assertions) != 1 {
+				t.Fatalf("got %v, want %v", len(syntheticsTest.GetConfig().Assertions), 1)
 			}
 			if got, want := *syntheticsTest.GetOptions().AcceptSelfSigned, false; got != want {
 				t.Fatalf("got %v, want %v", got, want)
@@ -53,18 +53,6 @@ func TestCreateSyntheticsTest(t *testing.T) {
 				t.Fatalf("got %v, want %v", got, want)
 			}
 			if got, want := syntheticsTest.GetConfig().Assertions[0].Target, 12; got != want {
-				t.Fatalf("got %v, want %v", got, want)
-			}
-			if got, want := syntheticsTest.GetConfig().Assertions[1].GetType(), "property"; got != want {
-				t.Fatalf("got %v, want %v", got, want)
-			}
-			if got, want := syntheticsTest.GetConfig().Assertions[1].GetOperator(), "is"; got != want {
-				t.Fatalf("got %v, want %v", got, want)
-			}
-			if got, want := syntheticsTest.GetConfig().Assertions[1].GetProperty(), "issuer.CN"; got != want {
-				t.Fatalf("got %v, want %v", got, want)
-			}
-			if got, want := syntheticsTest.GetConfig().Assertions[1].Target, "Let's Encrypt Authority X3"; got != want {
 				t.Fatalf("got %v, want %v", got, want)
 			}
 			if got, want := syntheticsTest.GetConfig().Request.GetPort(), 443; got != want {
