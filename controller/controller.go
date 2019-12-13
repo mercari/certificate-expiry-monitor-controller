@@ -84,7 +84,6 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 	if err != nil {
 		return err
 	}
-	c.Logger.Info("Running the controller loop")
 	thresholdTime := currentTime.Add(c.AlertThreshold)
 
 	var endpointList []string
