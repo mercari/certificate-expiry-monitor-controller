@@ -36,7 +36,7 @@ func TestDefaultEnv(t *testing.T) {
 	if env.TestManager {
 		t.Fatal("Unexpected default value in SYNTHETICS_ENABLED")
 	}
-	if env.CheckInterval != 15 {
+	if env.CheckInterval != 900 {
 		t.Fatal("Unexpected default value in SYNTHETICS_CHECK_INTERVAL")
 	}
 	if env.AlertMessage != "" {
