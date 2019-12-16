@@ -18,6 +18,7 @@ type TestManager struct {
 	AlertMessage        string
 	CheckInterval       int
 	DefaultTag          string
+	DefaultLocations    []string
 	Tags                []string
 	AdditionalEndpoints []string
 	Enabled             bool
@@ -89,7 +90,7 @@ func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*
 	tags := tm.Tags
 	tags = append(tags, tm.DefaultTag)
 
-	newTest := &datadog.SyntheticsTest{Locations: []string{"aws:ap-northeast-1"}, Tags: tags}
+	newTest := &datadog.SyntheticsTest{Locations: tm.DefaultLocations, Tags: tags}
 	newTest.SetName(endpoint)
 	newTest.SetType("api")
 	newTest.SetSubtype("ssl")

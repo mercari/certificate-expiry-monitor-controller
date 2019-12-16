@@ -48,6 +48,9 @@ func TestDefaultEnv(t *testing.T) {
 	if env.AdditionalEndpoints != nil {
 		t.Fatal("Unexpected default value in SYNTHETICS_ADDITIONAL_ENDPOINTS")
 	}
+	if env.DefaultLocations == nil {
+		t.Fatal("Unexpected default value in SYNTHETICS_DEFAULT_LOCATIONS")
+	}
 }
 
 func TestValidate(t *testing.T) {

@@ -97,6 +97,7 @@ You can set following configurations for the synthetics test manager by using en
 | `SYNTHETICS_CHECK_INTERVAL`         | false    | `900`            | `60`, `300`, `900`, `1800`, `3600`, `21600`, `43200`, `86400`, `604800`         | The interval in seconds at which the synthetics test checks will run. Lowest value is 60 seconds (1min) and highest value is 604800 seconds (1 week).                                             |
 | `SYNTHETICS_TAGS`        | false    | "" | `foo:bar`, `"foo:bar, bar:foo"`  | List of tags to attribute to synthetics tests, as key:value format string separated by comma. |
 | `SYNTHETICS_DEFAULT_TAG`        | false    | `managed-by-cert-expiry-mon`            | `my-control-tag`  | Default tag used to control synthetics tests managed by certificate-expiry-monitor-controller.                                                                                                                                                  |
+| `SYNTHETICS_DEFAULT_LOCATIONS`        | false    | `"aws:ap-northeast-1"`            | `"aws:ap-northeast-1, aws:ap-east-1"`  | List of default locations to run synthetic tests from. [Available locations are retrievable here](https://docs.datadoghq.com/api/?lang=bash#get-available-locations)                                                                                                                                          |
 | `SYNTHETICS_ADDITIONAL_ENDPOINTS`      | false    | ""                | "example.com", "example.com:8443", "example.com, example2.com:8443", "example.com:8443, example2.com:8443" | List of endpoints to add to the synthetics test controller. Useful to monitor services not served by an Ingress. Uses the format `endpoint:port`, port is optional, 443 is implied if not set.|
 
 
@@ -109,13 +110,16 @@ You can set following configurations for the synthetics test manager by using en
 ## Committers
 
 Takamasa SAICHI ([@Everysick](https://github.com/Everysick))
+Raphael FRAYSSE ([@lainra](https://github.com/lainra))
 
 ## Contribution
+
 Please read the CLA below carefully before submitting your contribution.
 
 https://www.mercari.com/cla/
 
 ## LICENSE
+
 Copyright 2018 Mercari, Inc.
 
 Licensed under the MIT License.

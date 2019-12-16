@@ -35,6 +35,7 @@ type Env struct {
 	CheckInterval       int      `envconfig:"SYNTHETICS_CHECK_INTERVAL" default:"900"`
 	Tags                []string `envconfig:"SYNTHETICS_TAGS" default:""`
 	DefaultTag          string   `envconfig:"SYNTHETICS_DEFAULT_TAG" default:"managed-by-cert-expiry-mon"`
+	DefaultLocations    []string `envconfig:"SYNTHETICS_DEFAULT_LOCATIONS" default:"aws:ap-northeast-1"`
 	AdditionalEndpoints []string `envconfig:"SYNTHETICS_ADDITIONAL_ENDPOINTS" default:""`
 }
 
