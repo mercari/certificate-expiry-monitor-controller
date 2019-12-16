@@ -68,6 +68,32 @@ func ContainsColon(slice []string, val string) bool {
 	return false
 }
 
+// getManagedSyntheticsTests returns all synthetics tests matching the default tag
+func (tm *TestManager) getManagedSyntheticsTests() ([]datadog.SyntheticsTest, error) {
+	// Return error if default tag is not set
+	if tm.DefaultTag == "" {
+		err := fmt.Errorf("No default tag is set for synthetics tests, aborting creation process")
+		return nil, err
+	}
+	var managedTests []datadog.SyntheticsTest
+	// Get all existing synthetic tests
+	tests, err := tm.Client.GetSyntheticsTests()
+	if err != nil {
+		log.Printf("Failed to get synthetics tests from Datadog: %s\n", err.Error())
+		return nil, err
+	}
+	for _, test := range tests {
+		// Only deal with tests having auto-generated tag
+		if Contains(test.Tags, tm.DefaultTag) {
+			if _, exists := test.GetNameOk(); exists {
+				managedTests = append(managedTests, test)
+			}
+		}
+	}
+
+	return managedTests, nil
+}
+
 // createManagedSyntheticsTest configures and create a new synthetics test in Datadog
 func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*datadog.SyntheticsTest, error) {
 	newOptions := &datadog.SyntheticsOptions{}
@@ -108,14 +134,10 @@ func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*
 
 // CreateManagedSyntheticsTests creates synthetics test according to the endpointList provided
 func (tm *TestManager) CreateManagedSyntheticsTests(endpointList []string) error {
-	if tm.DefaultTag == "" {
-		err := fmt.Errorf("No default tag is set for synthetics tests, aborting creation process")
-		return err
-	}
 	// Get all existing synthetic tests
-	tests, err := tm.Client.GetSyntheticsTests()
+	tests, err := tm.getManagedSyntheticsTests()
 	if err != nil {
-		log.Printf("Couldn't get synthetics tests from Datadog: %s\n", err.Error())
+		log.Printf("Failed to get synthetics tests: %s\n", err.Error())
 		return err
 	}
 	for _, endpoint := range endpointList {
@@ -133,19 +155,8 @@ func (tm *TestManager) CreateManagedSyntheticsTests(endpointList []string) error
 		}
 		// Normalize endpoint names from SYNTHETIC_ADDITIONAL_ENDPOINTS as they might have a defined port
 		for _, test := range tests {
-			// Only deal with tests having auto-generated tag
-			if Contains(test.Tags, tm.DefaultTag) {
-				endpointName, exists := test.GetNameOk()
-				// Use matched to determine whether a skip/create operation is required
-				if exists {
-					log.Printf("warn: endpointName (Test name) is %s, endpoint (Ingress name) is %s", endpointName, endpoint)
-					if endpoint == endpointName {
-						matched = true
-						break
-					}
-				} else {
-					log.Printf("warn: Test %s doesn't have any name, skipping", test.GetPublicId())
-				}
+			if endpoint == test.GetName() {
+				matched = true
 			}
 		}
 		if matched {
@@ -163,28 +174,18 @@ func (tm *TestManager) CreateManagedSyntheticsTests(endpointList []string) error
 
 // DeleteManagedSyntheticsTests removes managed synthetics test not matching the endpointList provided
 func (tm *TestManager) DeleteManagedSyntheticsTests(endpointList []string) error {
-	if tm.DefaultTag == "" {
-		err := fmt.Errorf("No default tag is set for synthetics tests, aborting deletion process")
-		return err
-	}
 	// Get all existing synthetic tests
-	tests, err := tm.Client.GetSyntheticsTests()
+	tests, err := tm.getManagedSyntheticsTests()
 	if err != nil {
-		log.Printf("Couldn't get synthetics tests from Datadog: %s\n", err.Error())
+		log.Printf("Failed to get synthetics tests: %s\n", err.Error())
+		return err
 	}
 	// Slice containing all tests publicIds to delete
 	toDelete := []string{}
 	for _, test := range tests {
-		// Only deal with tests having auto-generated tag
-		if Contains(test.Tags, tm.DefaultTag) {
-			if endpointName, exists := test.GetNameOk(); exists {
-				if !ContainsColon(endpointList, endpointName) {
-					log.Printf("warn: Managed test %s, with hostname %s, doesn't have any matching ingress, adding to delete list", test.GetPublicId(), endpointName)
-					toDelete = append(toDelete, test.GetPublicId())
-				}
-			} else {
-				log.Printf("warn: Test %s doesn't have any name, skipping", test.GetPublicId())
-			}
+		if !ContainsColon(endpointList, test.GetName()) {
+			log.Printf("warn: Managed test %s, with hostname %s, doesn't have any matching ingress, adding to delete list", test.GetPublicId(), test.GetName())
+			toDelete = append(toDelete, test.GetPublicId())
 		}
 	}
 	// Delete only when there are candidates to deletion
