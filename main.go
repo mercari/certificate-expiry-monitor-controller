@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	synthetics "github.com/lainra/certificate-expiry-monitor-controller/synthetics/datadog"
+	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
 	"github.com/mercari/certificate-expiry-monitor-controller/config"
 	"github.com/mercari/certificate-expiry-monitor-controller/controller"
 	logging "github.com/mercari/certificate-expiry-monitor-controller/log"
