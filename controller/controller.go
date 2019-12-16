@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	synthetics "github.com/lainra/certificate-expiry-monitor-controller/synthetics/datadog"
+	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
 
 	"go.uber.org/zap"
 
