@@ -6,13 +6,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
 	"github.com/mercari/certificate-expiry-monitor-controller/config"
 	"github.com/mercari/certificate-expiry-monitor-controller/controller"
 	logging "github.com/mercari/certificate-expiry-monitor-controller/log"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/log"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/slack"
+	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
 
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -87,6 +87,7 @@ func runMain() int {
 		testManager.Tags = env.Tags
 		testManager.DefaultTag = env.DefaultTag
 		testManager.AdditionalEndpoints = env.AdditionalEndpoints
+		testManager.DefaultLocations = env.DefaultLocations
 
 		// Set control flag to prevent running the synthetics logic in the controller when feature-gated
 		testManager.Enabled = true
