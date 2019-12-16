@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// TestManager synchronize synthetics tests in Datadog witm existing Kubernetes Ingress Endpoints
+// TestManager synchronize synthetics tests in Datadog with existing Kubernetes Ingress Endpoints
 type TestManager struct {
 	Client              Client
 	Logger              *zap.Logger
