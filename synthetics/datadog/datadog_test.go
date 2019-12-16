@@ -93,6 +93,7 @@ func TestCreateSyntheticsTest(t *testing.T) {
 	tm.AlertMessage = ""
 	tm.Client = client
 	tm.DefaultTag = "managed-by-cert-exp-mon"
+	tm.DefaultLocations = []string{"aws:ap-northeast-1"}
 	endpoint := "example.com"
 	port := 443
 	tm.createManagedSyntheticsTest(endpoint, port)
