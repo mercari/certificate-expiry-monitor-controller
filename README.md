@@ -1,4 +1,5 @@
 # Certificate Expiry Monitor Controller
+
 [![CircleCI](https://circleci.com/gh/mercari/certificate-expiry-monitor-controller.svg?style=svg)](https://circleci.com/gh/mercari/certificate-expiry-monitor-controller)
 [![codecov](https://codecov.io/gh/mercari/certificate-expiry-monitor-controller/branch/master/graph/badge.svg)](https://codecov.io/gh/mercari/certificate-expiry-monitor-controller)
 
@@ -99,7 +100,6 @@ You can set following configurations for the synthetics test manager by using en
 | `SYNTHETICS_DEFAULT_TAG`        | false    | `managed-by-cert-expiry-mon`            | `my-control-tag`  | Default tag used to control synthetics tests managed by certificate-expiry-monitor-controller.                                                                                                                                                  |
 | `SYNTHETICS_DEFAULT_LOCATIONS`        | false    | `"aws:ap-northeast-1"`            | `"aws:ap-northeast-1, aws:ap-east-1"`  | List of default locations to run synthetic tests from. [Available locations are retrievable here](https://docs.datadoghq.com/api/?lang=bash#get-available-locations)                                                                                                                                          |
 | `SYNTHETICS_ADDITIONAL_ENDPOINTS`      | false    | ""                | "example.com", "example.com:8443", "example.com, example2.com:8443", "example.com:8443, example2.com:8443" | List of endpoints to add to the synthetics test controller. Useful to monitor services not served by an Ingress. Uses the format `endpoint:port`, port is optional, 443 is implied if not set.|
-
 
 ## Future works
 

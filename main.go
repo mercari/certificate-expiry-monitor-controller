@@ -91,11 +91,7 @@ func runMain() int {
 
 		// Set control flag to prevent running the synthetics logic in the controller when feature-gated
 		testManager.Enabled = true
-
-		fmt.Fprintf(os.Stdout, "TestManager enabled value in main init function %t", testManager.Enabled)
-
 	}
-	fmt.Fprintf(os.Stdout, "TestManager enabled value in main %t", testManager.Enabled)
 
 	// Create new controller instance.
 	controller, err := controller.NewController(logger, clientSet, env.VerifyInterval, env.AlertThreshold, notifiers, testManager)
