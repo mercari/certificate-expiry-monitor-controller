@@ -12,6 +12,7 @@ import (
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/log"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/slack"
+	"github.com/mercari/certificate-expiry-monitor-controller/notifier/teams"
 
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -47,6 +48,14 @@ func runMain() int {
 			sl, err := slack.NewNotifier(env.SlackToken, env.SlackChannel)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "[ERROR] Failed to create slack notifier: %s\n", err.Error())
+				return 1
+			}
+
+			notifiers[i] = sl
+		case teams.String():
+			sl, err := teams.NewNotifier(env.TeamsWebhook)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[ERROR] Failed to create ms teams notifier: %s\n", err.Error())
 				return 1
 			}
 
