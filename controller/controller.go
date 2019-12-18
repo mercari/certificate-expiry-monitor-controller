@@ -86,16 +86,20 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 	}
 	thresholdTime := currentTime.Add(c.AlertThreshold)
 
-	var endpointList []string
+	syntheticEndpoints := make(synthetics.SyntheticEndpoints)
 
 	for _, ingress := range ingresses {
 		for _, tls := range ingress.TLS {
 
 			// Add non overlapping endpoints to a list to manage synthetic tests
 			for _, tlsEndpoint := range tls.Endpoints {
-				if !synthetics.Contains(endpointList, tlsEndpoint.Hostname) {
-					endpointList = append(endpointList, tlsEndpoint.Hostname)
+				s, err := synthetics.SyntheticEndpoint{}.FromHostPortStr(tlsEndpoint.Hostname, tlsEndpoint.Port)
+
+				if err != nil {
+					c.Logger.Warn("Failed to parse synthetic endpoint", zap.Error(err))
 				}
+
+				syntheticEndpoints.Add(s)
 			}
 
 			var certificates []*x509.Certificate
@@ -146,12 +150,29 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 	if c.TestManager.Enabled {
 		// Create managed synthetics tests matching the Ingress endpoint list
 		c.Logger.Info("Checking if tests need to be created")
-		endpointList = append(endpointList, c.TestManager.AdditionalEndpoints...)
-		c.TestManager.CreateManagedSyntheticsTests(endpointList)
+
+		for _, e := range c.TestManager.AdditionalEndpoints {
+			s, err := (synthetics.SyntheticEndpoint{}).FromString(e)
+
+			if err != nil {
+				c.Logger.Warn("Failed to parse synthetic endpoint", zap.Error(err))
+			}
+
+			syntheticEndpoints.Add(s)
+		}
+
+		err = c.TestManager.CreateManagedSyntheticsTests(syntheticEndpoints)
+		if err != nil {
+			c.Logger.Warn("Failed to create synthetics tests", zap.Error(err))
+		}
 
 		c.Logger.Info("Checking if orphaned tests need to be deleted")
+
 		// Delete managed synthetics tests not matching the Ingress endpoint list
-		c.TestManager.DeleteManagedSyntheticsTests(endpointList)
+		err := c.TestManager.DeleteManagedSyntheticsTests(syntheticEndpoints)
+		if err != nil {
+			c.Logger.Warn("Failed to delete synthetics tests", zap.Error(err))
+		}
 	}
 
 	return nil

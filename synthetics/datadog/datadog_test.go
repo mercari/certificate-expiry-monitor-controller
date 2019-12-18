@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -94,9 +95,12 @@ func TestCreateSyntheticsTest(t *testing.T) {
 	tm.Client = client
 	tm.DefaultTag = "managed-by-cert-exp-mon"
 	tm.DefaultLocations = []string{"aws:ap-northeast-1"}
-	endpoint := "example.com"
-	port := 443
-	tm.createManagedSyntheticsTest(endpoint, port)
+	name := "example.com-443"
+	endpoint := SyntheticEndpoint{
+		Hostname: "example.com",
+		Port:     443,
+	}
+	tm.createManagedSyntheticsTest(name, endpoint)
 }
 
 func TestGetSyntheticsTests(t *testing.T) {
@@ -136,10 +140,10 @@ func TestCreateManagedSyntheticsTests(t *testing.T) {
 		t: t,
 		validateGetSyntheticsTestsFunc: func(t *testing.T) []datadog.SyntheticsTest {
 			test := new(datadog.SyntheticsTest)
-			test.SetName("example.com")
+			test.SetName("example.com-443")
 			test.Tags = append(test.Tags, "managed-by-cert-expiry-mon")
 			test2 := new(datadog.SyntheticsTest)
-			test2.SetName("example2.com")
+			test2.SetName("example2.com-443")
 			tests := &[]datadog.SyntheticsTest{*test, *test2}
 			return *tests
 		},
@@ -162,14 +166,24 @@ func TestCreateManagedSyntheticsTests(t *testing.T) {
 	}
 
 	if got := captureOutput(func() {
-		endpointList := []string{"example.com"}
-		tm.CreateManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"example.com-443": SyntheticEndpoint{
+				Hostname: "example.com",
+				Port:     443,
+			},
+		}
+		tm.CreateManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "Test is already existing for") == false {
-		t.Fatalf("want `Test is already existing for example.com and Ingress exists`, got %s", got)
+		t.Fatalf("want `Test is already existing for example.com-443 and Ingress exists`, got %s", got)
 	}
 	if got := captureOutput(func() {
-		endpointList := []string{"nonexistinguri.com"}
-		tm.CreateManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"nonexistinguri.com-443": SyntheticEndpoint{
+				Hostname: "nonexistinguri.com",
+				Port:     443,
+			},
+		}
+		tm.CreateManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "Creating new test for Ingress endpoint nonexistinguri.com") == false {
 		t.Fatalf("want test, got %s", got)
 	}
@@ -181,17 +195,17 @@ func TestDeleteManagedSyntheticsTests(t *testing.T) {
 		t: t,
 		validateGetSyntheticsTestsFunc: func(t *testing.T) []datadog.SyntheticsTest {
 			test := new(datadog.SyntheticsTest)
-			test.SetName("example.com")
+			test.SetName("example.com-443")
 			test.SetPublicId("aaa-aaa-aaa")
 			test.Tags = append(test.Tags, "managed-by-cert-expiry-mon")
 
 			test2 := new(datadog.SyntheticsTest)
 			test.SetPublicId("bbb-bbb-bbb")
-			test2.SetName("example2.com")
+			test2.SetName("example2.com-443")
 
 			test3 := new(datadog.SyntheticsTest)
 			test3.SetPublicId("ccc-ccc-ccc")
-			test3.SetName("example3.com")
+			test3.SetName("example3.com-443")
 			test3.Tags = append(test.Tags, "managed-by-cert-expiry-mon")
 
 			tests := &[]datadog.SyntheticsTest{*test, *test2, *test3}
@@ -210,29 +224,49 @@ func TestDeleteManagedSyntheticsTests(t *testing.T) {
 
 	// Case 1: Only example3.com should be deleted, example.com is in the Ingress endpoint list and example2 doesn't have the managed tag
 	if got := captureOutput(func() {
-		endpointList := []string{"example.com"}
-		tm.DeleteManagedSyntheticsTests(endpointList)
-	}); strings.Contains(got, "Managed test ccc-ccc-ccc, with hostname example3.com, doesn't have any matching ingress, adding to delete list") == false {
-		t.Fatalf("want `Managed test ccc-ccc-ccc, with hostname example3.com, doesn't have any matching ingress, adding to delete list`, got %s", got)
+		endpoints := SyntheticEndpoints{
+			"example.com-443": SyntheticEndpoint{
+				Hostname: "example.com",
+				Port:     443,
+			},
+		}
+		tm.DeleteManagedSyntheticsTests(endpoints)
+	}); strings.Contains(got, "Managed test ccc-ccc-ccc, with hostname example3.com-443, doesn't have any matching ingress, adding to delete list") == false {
+		t.Fatalf("want `Managed test ccc-ccc-ccc, with hostname example3.com-443, doesn't have any matching ingress, adding to delete list`, got %s", got)
 	}
 	// Case 2: example.com and example3.com should be deleted, example2.com doesn't have the tag
 	if got := captureOutput(func() {
-		endpointList := []string{}
-		tm.DeleteManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{}
+		tm.DeleteManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "Deleting 2 managed tests") == false {
 		t.Fatalf("want `Deleting 2 managed tests`, got %s", got)
 	}
 	// Case 3: Nothing should be deleted, expect no output
 	if got := captureOutput(func() {
-		endpointList := []string{"example.com", "example3.com"}
-		tm.DeleteManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"example.com-443": SyntheticEndpoint{
+				Hostname: "example.com",
+				Port:     443,
+			},
+			"example3.com-443": SyntheticEndpoint{
+				Hostname: "example3.com",
+				Port:     443,
+			},
+		}
+		tm.DeleteManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "No test candidate for deletion") == false {
 		t.Fatalf("want `No test candidate for deletion`, got %s", got)
 	}
 	// Case 4: example2.com should not be deleted as it doesn't have the managed tag, expect no output
 	if got := captureOutput(func() {
-		endpointList := []string{"example2.com"}
-		tm.DeleteManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"example2.com-443": SyntheticEndpoint{
+				Hostname: "example2.com",
+				Port:     443,
+			},
+		}
+
+		tm.DeleteManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "re") == false {
 		t.Fatalf("want `Deleting 2 managed tests`, got %s", got)
 	}
@@ -244,4 +278,220 @@ func captureOutput(f func()) string {
 	f()
 	log.SetOutput(os.Stderr)
 	return buf.String()
+}
+
+func TestSyntheticEndpoint_GetNormalizedName(t *testing.T) {
+	type fields struct {
+		Hostname string
+		Port     int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "SimpleCase",
+			fields: fields{
+				Hostname: "test.com",
+				Port:     443,
+			},
+			want: "test.com-443",
+		},
+		{
+			name: "SimpleCase2",
+			fields: fields{
+				Hostname: "test2.com",
+				Port:     10000,
+			},
+			want: "test2.com-10000",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := SyntheticEndpoint{
+				Hostname: tt.fields.Hostname,
+				Port:     tt.fields.Port,
+			}
+			if got := s.GetNormalizedName(); got != tt.want {
+				t.Errorf("GetNormalizedName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSyntheticEndpoint_FromHostPortStr(t *testing.T) {
+	type args struct {
+		hostname string
+		port     string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    SyntheticEndpoint
+		wantErr bool
+	}{
+		{
+			name: "SimpleCase",
+			args: args{
+				hostname: "example.com",
+				port:     "443",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example.com",
+				Port:     443,
+			},
+			wantErr: false,
+		},
+		{
+			name: "SimpleCase2",
+			args: args{
+				hostname: "example2.com",
+				port:     "1000",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example2.com",
+				Port:     1000,
+			},
+			wantErr: false,
+		},
+		{
+			name: "MissingPort",
+			args: args{
+				hostname: "example.com",
+				port:     "",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			}
+			got, err := s.FromHostPortStr(tt.args.hostname, tt.args.port)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FromHostPortStr() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FromHostPortStr() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSyntheticEndpoint_FromString(t *testing.T) {
+	type args struct {
+		input string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    SyntheticEndpoint
+		wantErr bool
+	}{
+		{
+			name: "SimpleCase",
+			args: args{
+				input: "example.com:443",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example.com",
+				Port:     443,
+			},
+			wantErr: false,
+		},
+		{
+			name: "SimpleCase2",
+			args: args{
+				input: "example2.com:1000",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example2.com",
+				Port:     1000,
+			},
+			wantErr: false,
+		},
+		{
+			name: "MissingPort",
+			args: args{
+				input: "example.com:",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "InvalidPort1",
+			args: args{
+				input: "example.com:0",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "InvalidPort2",
+			args: args{
+				input: "example.com:hello",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "MissingHostname",
+			args: args{
+				input: ":443",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			}
+			got, err := s.FromString(tt.args.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FromString() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FromString() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSyntheticEndpoints_Add(t *testing.T) {
+	t.Run("AddAnEndpoint", func(t *testing.T) {
+		se := SyntheticEndpoints{}
+
+		se.Add(SyntheticEndpoint{
+			Hostname: "test.com",
+			Port:     443,
+		})
+
+		if _, ok := se["test.com-443"]; !ok {
+			t.Errorf("Expected added endpoint to appear in the SyntheticEndpoints map")
+		}
+	})
 }
