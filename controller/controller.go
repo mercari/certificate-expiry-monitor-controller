@@ -93,7 +93,7 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 
 			// Add non overlapping endpoints to a list to manage synthetic tests
 			for _, tlsEndpoint := range tls.Endpoints {
-				s, err := (synthetics.SyntheticEndpoint{}).FromHostPortStr(tlsEndpoint.Hostname, tlsEndpoint.Port)
+				s, err := synthetics.SyntheticEndpoint{}.FromHostPortStr(tlsEndpoint.Hostname, tlsEndpoint.Port)
 
 				if err != nil {
 					c.Logger.Warn("Failed to parse synthetic endpoint", zap.Error(err))

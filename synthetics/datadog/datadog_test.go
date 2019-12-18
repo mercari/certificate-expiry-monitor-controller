@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -168,7 +169,7 @@ func TestCreateManagedSyntheticsTests(t *testing.T) {
 		endpoints := SyntheticEndpoints{
 			"example.com-443": SyntheticEndpoint{
 				Hostname: "example.com",
-				Port: 443,
+				Port:     443,
 			},
 		}
 		tm.CreateManagedSyntheticsTests(endpoints)
@@ -179,7 +180,7 @@ func TestCreateManagedSyntheticsTests(t *testing.T) {
 		endpoints := SyntheticEndpoints{
 			"nonexistinguri.com-443": SyntheticEndpoint{
 				Hostname: "nonexistinguri.com",
-				Port: 443,
+				Port:     443,
 			},
 		}
 		tm.CreateManagedSyntheticsTests(endpoints)
@@ -226,7 +227,7 @@ func TestDeleteManagedSyntheticsTests(t *testing.T) {
 		endpoints := SyntheticEndpoints{
 			"example.com-443": SyntheticEndpoint{
 				Hostname: "example.com",
-				Port: 443,
+				Port:     443,
 			},
 		}
 		tm.DeleteManagedSyntheticsTests(endpoints)
@@ -245,11 +246,11 @@ func TestDeleteManagedSyntheticsTests(t *testing.T) {
 		endpoints := SyntheticEndpoints{
 			"example.com-443": SyntheticEndpoint{
 				Hostname: "example.com",
-				Port: 443,
+				Port:     443,
 			},
 			"example3.com-443": SyntheticEndpoint{
 				Hostname: "example3.com",
-				Port: 443,
+				Port:     443,
 			},
 		}
 		tm.DeleteManagedSyntheticsTests(endpoints)
@@ -261,7 +262,7 @@ func TestDeleteManagedSyntheticsTests(t *testing.T) {
 		endpoints := SyntheticEndpoints{
 			"example2.com-443": SyntheticEndpoint{
 				Hostname: "example2.com",
-				Port: 443,
+				Port:     443,
 			},
 		}
 
@@ -277,4 +278,220 @@ func captureOutput(f func()) string {
 	f()
 	log.SetOutput(os.Stderr)
 	return buf.String()
+}
+
+func TestSyntheticEndpoint_GetNormalizedName(t *testing.T) {
+	type fields struct {
+		Hostname string
+		Port     int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "SimpleCase",
+			fields: fields{
+				Hostname: "test.com",
+				Port:     443,
+			},
+			want: "test.com-443",
+		},
+		{
+			name: "SimpleCase2",
+			fields: fields{
+				Hostname: "test2.com",
+				Port:     10000,
+			},
+			want: "test2.com-10000",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := SyntheticEndpoint{
+				Hostname: tt.fields.Hostname,
+				Port:     tt.fields.Port,
+			}
+			if got := s.GetNormalizedName(); got != tt.want {
+				t.Errorf("GetNormalizedName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSyntheticEndpoint_FromHostPortStr(t *testing.T) {
+	type args struct {
+		hostname string
+		port     string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    SyntheticEndpoint
+		wantErr bool
+	}{
+		{
+			name: "SimpleCase",
+			args: args{
+				hostname: "example.com",
+				port:     "443",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example.com",
+				Port:     443,
+			},
+			wantErr: false,
+		},
+		{
+			name: "SimpleCase2",
+			args: args{
+				hostname: "example2.com",
+				port:     "1000",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example2.com",
+				Port:     1000,
+			},
+			wantErr: false,
+		},
+		{
+			name: "MissingPort",
+			args: args{
+				hostname: "example.com",
+				port:     "",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			}
+			got, err := s.FromHostPortStr(tt.args.hostname, tt.args.port)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FromHostPortStr() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FromHostPortStr() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSyntheticEndpoint_FromString(t *testing.T) {
+	type args struct {
+		input string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    SyntheticEndpoint
+		wantErr bool
+	}{
+		{
+			name: "SimpleCase",
+			args: args{
+				input: "example.com:443",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example.com",
+				Port:     443,
+			},
+			wantErr: false,
+		},
+		{
+			name: "SimpleCase2",
+			args: args{
+				input: "example2.com:1000",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "example2.com",
+				Port:     1000,
+			},
+			wantErr: false,
+		},
+		{
+			name: "MissingPort",
+			args: args{
+				input: "example.com:",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "InvalidPort1",
+			args: args{
+				input: "example.com:0",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "InvalidPort2",
+			args: args{
+				input: "example.com:hello",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "MissingHostname",
+			args: args{
+				input: ":443",
+			},
+			want: SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := SyntheticEndpoint{
+				Hostname: "",
+				Port:     0,
+			}
+			got, err := s.FromString(tt.args.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FromString() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FromString() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSyntheticEndpoints_Add(t *testing.T) {
+	t.Run("AddAnEndpoint", func(t *testing.T) {
+		se := SyntheticEndpoints{}
+
+		se.Add(SyntheticEndpoint{
+			Hostname: "test.com",
+			Port:     443,
+		})
+
+		if _, ok := se["test.com-443"]; !ok {
+			t.Errorf("Expected added endpoint to appear in the SyntheticEndpoints map")
+		}
+	})
 }

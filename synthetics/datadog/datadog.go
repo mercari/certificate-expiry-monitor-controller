@@ -32,7 +32,7 @@ type Client interface {
 
 type SyntheticEndpoint struct {
 	Hostname string
-	Port int
+	Port     int
 }
 
 type SyntheticEndpoints map[string]SyntheticEndpoint
@@ -59,6 +59,18 @@ func (s SyntheticEndpoint) FromString(input string) (SyntheticEndpoint, error) {
 
 		host = split[0]
 		portStr = split[1]
+
+		if len(host) == 0 {
+			return s, errors.New("missing hostname")
+		}
+
+		if len(portStr) == 0 {
+			return s, errors.New("missing port")
+		}
+
+		if portStr == "0" {
+			return s, errors.New("invalid port")
+		}
 	}
 
 	port, err := strconv.Atoi(portStr)
