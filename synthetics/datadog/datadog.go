@@ -6,6 +6,8 @@ import (
 	"github.com/zorkian/go-datadog-api"
 	"go.uber.org/zap"
 	"log"
+	"strconv"
+	"strings"
 )
 
 // TestManager synchronize synthetics tests in Datadog with existing Kubernetes Ingress Endpoints
@@ -34,6 +36,45 @@ type SyntheticEndpoint struct {
 }
 
 type SyntheticEndpoints map[string]SyntheticEndpoint
+
+func (s SyntheticEndpoint) GetNormalizedName() string {
+	return fmt.Sprintf("%s-%d", s.Hostname, s.Port)
+}
+
+func (s SyntheticEndpoint) FromHostPortStr(hostname string, port string) (SyntheticEndpoint, error) {
+	endpoint := fmt.Sprintf("%s:%s", hostname, port)
+	return s.FromString(endpoint)
+}
+
+func (s SyntheticEndpoint) FromString(input string) (SyntheticEndpoint, error) {
+	host := input
+	portStr := "443"
+
+	if strings.Contains(input, ":") {
+		split := strings.Split(input, ":")
+
+		if len(split) != 2 {
+			return s, errors.New("Invalid additional endpoint " + input)
+		}
+
+		host = split[0]
+		portStr = split[1]
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return s, errors.New("The port number is not a valid numeral: " + portStr)
+	}
+
+	s.Hostname = host
+	s.Port = port
+
+	return s, nil
+}
+
+func (se SyntheticEndpoints) Add(s SyntheticEndpoint) {
+	se[s.GetNormalizedName()] = s
+}
 
 // NewTestManager creates a new datadog.Client
 func NewTestManager(apiKey string, appKey string) (*TestManager, error) {

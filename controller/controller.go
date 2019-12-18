@@ -3,10 +3,7 @@ package controller
 import (
 	"crypto/x509"
 	"errors"
-	"strconv"
-	"strings"
 	"time"
-	"fmt"
 
 	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
 
@@ -96,21 +93,13 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 
 			// Add non overlapping endpoints to a list to manage synthetic tests
 			for _, tlsEndpoint := range tls.Endpoints {
+				s, err := (synthetics.SyntheticEndpoint{}).FromHostPortStr(tlsEndpoint.Hostname, tlsEndpoint.Port)
 
-				key := fmt.Sprintf("%s-%s", tlsEndpoint.Hostname, tlsEndpoint.Port)
-
-				port, err := strconv.Atoi(tlsEndpoint.Port)
 				if err != nil {
-					c.Logger.Warn("The port number is not a valid numeral", zap.String("port", tlsEndpoint.Port))
-					continue
+					c.Logger.Warn("Failed to parse synthetic endpoint", zap.Error(err))
 				}
 
-				if _, ok := syntheticEndpoints[key]; !ok {
-					syntheticEndpoints[key] = synthetics.SyntheticEndpoint{
-						Hostname: tlsEndpoint.Hostname,
-						Port:     port,
-					}
-				}
+				syntheticEndpoints.Add(s)
 			}
 
 			var certificates []*x509.Certificate
@@ -163,32 +152,13 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 		c.Logger.Info("Checking if tests need to be created")
 
 		for _, e := range c.TestManager.AdditionalEndpoints {
-			host := e
-			portStr := "443"
+			s, err := (synthetics.SyntheticEndpoint{}).FromString(e)
 
-			if strings.Contains(e, ":") {
-				split := strings.Split(e, ":")
-
-				if len(split) != 2 {
-					c.Logger.Warn("Invalid Additional Endpoint", zap.String("endpoint", e))
-					continue
-				}
-
-				host = split[0]
-				portStr = split[1]
-			}
-
-			key := fmt.Sprintf("%s-%s", host, portStr)
-			port, err := strconv.Atoi(portStr)
 			if err != nil {
-				c.Logger.Warn("The port number is not a valid numeral", zap.String("port", portStr))
-				continue
+				c.Logger.Warn("Failed to parse synthetic endpoint", zap.Error(err))
 			}
 
-			syntheticEndpoints[key] = synthetics.SyntheticEndpoint{
-				Hostname: host,
-				Port:     port,
-			}
+			syntheticEndpoints.Add(s)
 		}
 
 		err = c.TestManager.CreateManagedSyntheticsTests(syntheticEndpoints)
