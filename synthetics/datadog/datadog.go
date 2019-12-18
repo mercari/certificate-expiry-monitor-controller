@@ -3,12 +3,9 @@ package synthetics
 import (
 	"errors"
 	"fmt"
-	"log"
-	"strconv"
-	"strings"
-
 	"github.com/zorkian/go-datadog-api"
 	"go.uber.org/zap"
+	"log"
 )
 
 // TestManager synchronize synthetics tests in Datadog with existing Kubernetes Ingress Endpoints
@@ -31,6 +28,13 @@ type Client interface {
 	DeleteSyntheticsTests(publicIds []string) error
 }
 
+type SyntheticEndpoint struct {
+	Hostname string
+	Port int
+}
+
+type SyntheticEndpoints map[string]SyntheticEndpoint
+
 // NewTestManager creates a new datadog.Client
 func NewTestManager(apiKey string, appKey string) (*TestManager, error) {
 	if apiKey == "" {
@@ -47,20 +51,6 @@ func NewTestManager(apiKey string, appKey string) (*TestManager, error) {
 // Contains return whether a slice contains a specific value
 func Contains(slice []string, val string) bool {
 	for _, n := range slice {
-		if val == n {
-			return true
-		}
-	}
-	return false
-}
-
-// ContainsColon return whether a slice contains a specific value before the first colon
-func ContainsColon(slice []string, val string) bool {
-	for _, n := range slice {
-		if strings.ContainsAny(n, ":") {
-			s := strings.Split(n, ":")
-			n = s[0]
-		}
 		if val == n {
 			return true
 		}
@@ -95,7 +85,7 @@ func (tm *TestManager) getManagedSyntheticsTests() ([]datadog.SyntheticsTest, er
 }
 
 // createManagedSyntheticsTest configures and create a new synthetics test in Datadog
-func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*datadog.SyntheticsTest, error) {
+func (tm *TestManager) createManagedSyntheticsTest(name string, endpoint SyntheticEndpoint) (*datadog.SyntheticsTest, error) {
 	newOptions := &datadog.SyntheticsOptions{}
 	newOptions.SetAcceptSelfSigned(false)
 	newOptions.SetTickEvery(tm.CheckInterval)
@@ -106,8 +96,8 @@ func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*
 	expiryAssertion.Target = 12
 
 	newRequest := &datadog.SyntheticsRequest{}
-	newRequest.SetHost(endpoint)
-	newRequest.SetPort(port)
+	newRequest.SetHost(endpoint.Hostname)
+	newRequest.SetPort(endpoint.Port)
 
 	newConfig := &datadog.SyntheticsConfig{}
 	newConfig.Assertions = []datadog.SyntheticsAssertion{*expiryAssertion}
@@ -117,7 +107,7 @@ func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*
 	tags = append(tags, tm.DefaultTag)
 
 	newTest := &datadog.SyntheticsTest{Locations: tm.DefaultLocations, Tags: tags}
-	newTest.SetName(endpoint)
+	newTest.SetName(name)
 	newTest.SetType("api")
 	newTest.SetSubtype("ssl")
 	newTest.SetConfig(*newConfig)
@@ -133,39 +123,29 @@ func (tm *TestManager) createManagedSyntheticsTest(endpoint string, port int) (*
 }
 
 // CreateManagedSyntheticsTests creates synthetics test according to the endpointList provided
-func (tm *TestManager) CreateManagedSyntheticsTests(endpointList []string) error {
+func (tm *TestManager) CreateManagedSyntheticsTests(endpoints SyntheticEndpoints) error {
 	// Get all existing synthetic tests
 	tests, err := tm.getManagedSyntheticsTests()
 	if err != nil {
 		log.Printf("Failed to get synthetics tests: %s\n", err.Error())
 		return err
 	}
-	for _, endpoint := range endpointList {
+	for name, endpoint := range endpoints {
 		var matched bool
-		port := 443
-		if strings.ContainsAny(endpoint, ":") {
-			s := strings.Split(endpoint, ":")
-			endpoint = s[0]
-			i, err := strconv.Atoi(s[1])
-			if err != nil {
-				err := fmt.Errorf("The port number is not a valid numeral")
-				return err
-			}
-			port = i
-		}
+
 		// Normalize endpoint names from SYNTHETIC_ADDITIONAL_ENDPOINTS as they might have a defined port
 		for _, test := range tests {
-			if endpoint == test.GetName() {
+			if name == test.GetName() {
 				matched = true
 			}
 		}
 		if matched {
-			log.Printf("Test is already existing for %s and Ingress exists", endpoint)
+			log.Printf("Test is already existing for %s:%d and Ingress exists", endpoint.Hostname, endpoint.Port)
 		} else {
-			log.Printf("Creating new test for Ingress endpoint %s", endpoint)
-			_, err := tm.createManagedSyntheticsTest(endpoint, port)
+			log.Printf("Creating new test for Ingress endpoint %s:%d", endpoint.Hostname, endpoint.Port)
+			_, err := tm.createManagedSyntheticsTest(name, endpoint)
 			if err != nil {
-				log.Printf("Couldn't create the synthetic test for Ingress endpoint %s: %s\n", endpoint, err.Error())
+				log.Printf("Couldn't create the synthetic test for Ingress endpoint %s:%d: %s\n", endpoint.Hostname, endpoint.Port, err.Error())
 			}
 		}
 	}
@@ -173,7 +153,7 @@ func (tm *TestManager) CreateManagedSyntheticsTests(endpointList []string) error
 }
 
 // DeleteManagedSyntheticsTests removes managed synthetics test not matching the endpointList provided
-func (tm *TestManager) DeleteManagedSyntheticsTests(endpointList []string) error {
+func (tm *TestManager) DeleteManagedSyntheticsTests(endpoints SyntheticEndpoints) error {
 	// Get all existing synthetic tests
 	tests, err := tm.getManagedSyntheticsTests()
 	if err != nil {
@@ -181,15 +161,15 @@ func (tm *TestManager) DeleteManagedSyntheticsTests(endpointList []string) error
 		return err
 	}
 	// Slice containing all tests publicIds to delete
-	toDelete := []string{}
+	var toDelete []string
 	for _, test := range tests {
-		if !ContainsColon(endpointList, test.GetName()) {
+		if _, ok := endpoints[test.GetName()]; !ok {
 			log.Printf("warn: Managed test %s, with hostname %s, doesn't have any matching ingress, adding to delete list", test.GetPublicId(), test.GetName())
 			toDelete = append(toDelete, test.GetPublicId())
 		}
 	}
 	// Delete only when there are candidates to deletion
-	if len(toDelete) >= 1 {
+	if toDelete != nil && len(toDelete) >= 1 {
 		log.Printf("Deleting %d managed tests", len(toDelete))
 		err := tm.Client.DeleteSyntheticsTests(toDelete)
 		if err != nil {

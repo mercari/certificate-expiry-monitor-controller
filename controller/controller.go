@@ -3,7 +3,10 @@ package controller
 import (
 	"crypto/x509"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
+	"fmt"
 
 	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
 
@@ -86,15 +89,27 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 	}
 	thresholdTime := currentTime.Add(c.AlertThreshold)
 
-	var endpointList []string
+	syntheticEndpoints := make(synthetics.SyntheticEndpoints)
 
 	for _, ingress := range ingresses {
 		for _, tls := range ingress.TLS {
 
 			// Add non overlapping endpoints to a list to manage synthetic tests
 			for _, tlsEndpoint := range tls.Endpoints {
-				if !synthetics.Contains(endpointList, tlsEndpoint.Hostname) {
-					endpointList = append(endpointList, tlsEndpoint.Hostname)
+
+				key := fmt.Sprintf("%s-%s", tlsEndpoint.Hostname, tlsEndpoint.Port)
+
+				port, err := strconv.Atoi(tlsEndpoint.Port)
+				if err != nil {
+					c.Logger.Warn("The port number is not a valid numeral", zap.String("port", tlsEndpoint.Port))
+					continue
+				}
+
+				if _, ok := syntheticEndpoints[key]; !ok {
+					syntheticEndpoints[key] = synthetics.SyntheticEndpoint{
+						Hostname: tlsEndpoint.Hostname,
+						Port:     port,
+					}
 				}
 			}
 
@@ -146,12 +161,48 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 	if c.TestManager.Enabled {
 		// Create managed synthetics tests matching the Ingress endpoint list
 		c.Logger.Info("Checking if tests need to be created")
-		endpointList = append(endpointList, c.TestManager.AdditionalEndpoints...)
-		c.TestManager.CreateManagedSyntheticsTests(endpointList)
+
+		for _, e := range c.TestManager.AdditionalEndpoints {
+			host := e
+			portStr := "443"
+
+			if strings.Contains(e, ":") {
+				split := strings.Split(e, ":")
+
+				if len(split) != 2 {
+					c.Logger.Warn("Invalid Additional Endpoint", zap.String("endpoint", e))
+					continue
+				}
+
+				host = split[0]
+				portStr = split[1]
+			}
+
+			key := fmt.Sprintf("%s-%s", host, portStr)
+			port, err := strconv.Atoi(portStr)
+			if err != nil {
+				c.Logger.Warn("The port number is not a valid numeral", zap.String("port", portStr))
+				continue
+			}
+
+			syntheticEndpoints[key] = synthetics.SyntheticEndpoint{
+				Hostname: host,
+				Port:     port,
+			}
+		}
+
+		err = c.TestManager.CreateManagedSyntheticsTests(syntheticEndpoints)
+		if err != nil {
+			c.Logger.Warn("Failed to create synthetics tests", zap.Error(err))
+		}
 
 		c.Logger.Info("Checking if orphaned tests need to be deleted")
+
 		// Delete managed synthetics tests not matching the Ingress endpoint list
-		c.TestManager.DeleteManagedSyntheticsTests(endpointList)
+		err := c.TestManager.DeleteManagedSyntheticsTests(syntheticEndpoints)
+		if err != nil {
+			c.Logger.Warn("Failed to delete synthetics tests", zap.Error(err))
+		}
 	}
 
 	return nil

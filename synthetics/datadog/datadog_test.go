@@ -94,9 +94,12 @@ func TestCreateSyntheticsTest(t *testing.T) {
 	tm.Client = client
 	tm.DefaultTag = "managed-by-cert-exp-mon"
 	tm.DefaultLocations = []string{"aws:ap-northeast-1"}
-	endpoint := "example.com"
-	port := 443
-	tm.createManagedSyntheticsTest(endpoint, port)
+	name := "example.com-443"
+	endpoint := SyntheticEndpoint{
+		Hostname: "example.com",
+		Port:     443,
+	}
+	tm.createManagedSyntheticsTest(name, endpoint)
 }
 
 func TestGetSyntheticsTests(t *testing.T) {
@@ -136,10 +139,10 @@ func TestCreateManagedSyntheticsTests(t *testing.T) {
 		t: t,
 		validateGetSyntheticsTestsFunc: func(t *testing.T) []datadog.SyntheticsTest {
 			test := new(datadog.SyntheticsTest)
-			test.SetName("example.com")
+			test.SetName("example.com-443")
 			test.Tags = append(test.Tags, "managed-by-cert-expiry-mon")
 			test2 := new(datadog.SyntheticsTest)
-			test2.SetName("example2.com")
+			test2.SetName("example2.com-443")
 			tests := &[]datadog.SyntheticsTest{*test, *test2}
 			return *tests
 		},
@@ -162,14 +165,24 @@ func TestCreateManagedSyntheticsTests(t *testing.T) {
 	}
 
 	if got := captureOutput(func() {
-		endpointList := []string{"example.com"}
-		tm.CreateManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"example.com-443": SyntheticEndpoint{
+				Hostname: "example.com",
+				Port: 443,
+			},
+		}
+		tm.CreateManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "Test is already existing for") == false {
-		t.Fatalf("want `Test is already existing for example.com and Ingress exists`, got %s", got)
+		t.Fatalf("want `Test is already existing for example.com-443 and Ingress exists`, got %s", got)
 	}
 	if got := captureOutput(func() {
-		endpointList := []string{"nonexistinguri.com"}
-		tm.CreateManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"nonexistinguri.com-443": SyntheticEndpoint{
+				Hostname: "nonexistinguri.com",
+				Port: 443,
+			},
+		}
+		tm.CreateManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "Creating new test for Ingress endpoint nonexistinguri.com") == false {
 		t.Fatalf("want test, got %s", got)
 	}
@@ -181,17 +194,17 @@ func TestDeleteManagedSyntheticsTests(t *testing.T) {
 		t: t,
 		validateGetSyntheticsTestsFunc: func(t *testing.T) []datadog.SyntheticsTest {
 			test := new(datadog.SyntheticsTest)
-			test.SetName("example.com")
+			test.SetName("example.com-443")
 			test.SetPublicId("aaa-aaa-aaa")
 			test.Tags = append(test.Tags, "managed-by-cert-expiry-mon")
 
 			test2 := new(datadog.SyntheticsTest)
 			test.SetPublicId("bbb-bbb-bbb")
-			test2.SetName("example2.com")
+			test2.SetName("example2.com-443")
 
 			test3 := new(datadog.SyntheticsTest)
 			test3.SetPublicId("ccc-ccc-ccc")
-			test3.SetName("example3.com")
+			test3.SetName("example3.com-443")
 			test3.Tags = append(test.Tags, "managed-by-cert-expiry-mon")
 
 			tests := &[]datadog.SyntheticsTest{*test, *test2, *test3}
@@ -210,29 +223,49 @@ func TestDeleteManagedSyntheticsTests(t *testing.T) {
 
 	// Case 1: Only example3.com should be deleted, example.com is in the Ingress endpoint list and example2 doesn't have the managed tag
 	if got := captureOutput(func() {
-		endpointList := []string{"example.com"}
-		tm.DeleteManagedSyntheticsTests(endpointList)
-	}); strings.Contains(got, "Managed test ccc-ccc-ccc, with hostname example3.com, doesn't have any matching ingress, adding to delete list") == false {
-		t.Fatalf("want `Managed test ccc-ccc-ccc, with hostname example3.com, doesn't have any matching ingress, adding to delete list`, got %s", got)
+		endpoints := SyntheticEndpoints{
+			"example.com-443": SyntheticEndpoint{
+				Hostname: "example.com",
+				Port: 443,
+			},
+		}
+		tm.DeleteManagedSyntheticsTests(endpoints)
+	}); strings.Contains(got, "Managed test ccc-ccc-ccc, with hostname example3.com-443, doesn't have any matching ingress, adding to delete list") == false {
+		t.Fatalf("want `Managed test ccc-ccc-ccc, with hostname example3.com-443, doesn't have any matching ingress, adding to delete list`, got %s", got)
 	}
 	// Case 2: example.com and example3.com should be deleted, example2.com doesn't have the tag
 	if got := captureOutput(func() {
-		endpointList := []string{}
-		tm.DeleteManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{}
+		tm.DeleteManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "Deleting 2 managed tests") == false {
 		t.Fatalf("want `Deleting 2 managed tests`, got %s", got)
 	}
 	// Case 3: Nothing should be deleted, expect no output
 	if got := captureOutput(func() {
-		endpointList := []string{"example.com", "example3.com"}
-		tm.DeleteManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"example.com-443": SyntheticEndpoint{
+				Hostname: "example.com",
+				Port: 443,
+			},
+			"example3.com-443": SyntheticEndpoint{
+				Hostname: "example3.com",
+				Port: 443,
+			},
+		}
+		tm.DeleteManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "No test candidate for deletion") == false {
 		t.Fatalf("want `No test candidate for deletion`, got %s", got)
 	}
 	// Case 4: example2.com should not be deleted as it doesn't have the managed tag, expect no output
 	if got := captureOutput(func() {
-		endpointList := []string{"example2.com"}
-		tm.DeleteManagedSyntheticsTests(endpointList)
+		endpoints := SyntheticEndpoints{
+			"example2.com-443": SyntheticEndpoint{
+				Hostname: "example2.com",
+				Port: 443,
+			},
+		}
+
+		tm.DeleteManagedSyntheticsTests(endpoints)
 	}); strings.Contains(got, "re") == false {
 		t.Fatalf("want `Deleting 2 managed tests`, got %s", got)
 	}
