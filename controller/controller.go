@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
+
 	"go.uber.org/zap"
 
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier"
@@ -24,6 +26,7 @@ type Controller struct {
 	VerifyInterval time.Duration
 	AlertThreshold time.Duration
 	Notifiers      []notifier.Notifier
+	TestManager    *synthetics.TestManager
 }
 
 // NewController function validates arguments and
@@ -34,6 +37,7 @@ func NewController(
 	interval time.Duration,
 	threshold time.Duration,
 	notifiers []notifier.Notifier,
+	testManager *synthetics.TestManager,
 ) (*Controller, error) {
 	if clientSet == nil {
 		return nil, errors.New("clientSet must be non nil value")
@@ -49,6 +53,7 @@ func NewController(
 		VerifyInterval: interval,
 		AlertThreshold: threshold,
 		Notifiers:      notifiers,
+		TestManager:    testManager,
 	}, nil
 }
 
@@ -79,11 +84,23 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 	if err != nil {
 		return err
 	}
-
 	thresholdTime := currentTime.Add(c.AlertThreshold)
+
+	syntheticEndpoints := make(synthetics.SyntheticEndpoints)
 
 	for _, ingress := range ingresses {
 		for _, tls := range ingress.TLS {
+
+			// Add non overlapping endpoints to a list to manage synthetic tests
+			for _, tlsEndpoint := range tls.Endpoints {
+				s, err := synthetics.SyntheticEndpoint{}.FromHostPortStr(tlsEndpoint.Hostname, tlsEndpoint.Port)
+
+				if err != nil {
+					c.Logger.Warn("Failed to parse synthetic endpoint", zap.Error(err))
+				}
+
+				syntheticEndpoints.Add(s)
+			}
 
 			var certificates []*x509.Certificate
 			for _, e := range tls.Endpoints {
@@ -127,6 +144,34 @@ func (c *Controller) runOnce(currentTime time.Time) error {
 					c.Logger.Warn("Failed to send Alert", zap.Error(err))
 				}
 			}
+		}
+	}
+
+	if c.TestManager.Enabled {
+		// Create managed synthetics tests matching the Ingress endpoint list
+		c.Logger.Info("Checking if tests need to be created")
+
+		for _, e := range c.TestManager.AdditionalEndpoints {
+			s, err := (synthetics.SyntheticEndpoint{}).FromString(e)
+
+			if err != nil {
+				c.Logger.Warn("Failed to parse synthetic endpoint", zap.Error(err))
+			}
+
+			syntheticEndpoints.Add(s)
+		}
+
+		err = c.TestManager.CreateManagedSyntheticsTests(syntheticEndpoints)
+		if err != nil {
+			c.Logger.Warn("Failed to create synthetics tests", zap.Error(err))
+		}
+
+		c.Logger.Info("Checking if orphaned tests need to be deleted")
+
+		// Delete managed synthetics tests not matching the Ingress endpoint list
+		err := c.TestManager.DeleteManagedSyntheticsTests(syntheticEndpoints)
+		if err != nil {
+			c.Logger.Warn("Failed to delete synthetics tests", zap.Error(err))
 		}
 	}
 

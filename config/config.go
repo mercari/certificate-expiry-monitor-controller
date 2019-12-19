@@ -22,10 +22,21 @@ type Env struct {
 	VerifyInterval time.Duration `envconfig:"INTERVAL" default:"12h"`
 	AlertThreshold time.Duration `envconfig:"THRESHOLD" default:"336h"`
 	Notifiers      []string      `envconfig:"NOTIFIERS" default:"log"`
+	TestManager    bool          `envconfig:"SYNTHETICS_ENABLED" default:"false"`
 
 	// Configration for Slack
 	SlackToken   string `envconfig:"SLACK_TOKEN"`
 	SlackChannel string `envconfig:"SLACK_CHANNEL"`
+
+	// Configuration for Datadog
+	DatadogAPIKey       string   `envconfig:"DATADOG_API_KEY" default:""`
+	DatadogAppKey       string   `envconfig:"DATADOG_APPLICATION_KEY" default:""`
+	AlertMessage        string   `envconfig:"SYNTHETICS_ALERT_MESSAGE" default:""`
+	CheckInterval       int      `envconfig:"SYNTHETICS_CHECK_INTERVAL" default:"900"`
+	Tags                []string `envconfig:"SYNTHETICS_TAGS" default:""`
+	DefaultTag          string   `envconfig:"SYNTHETICS_DEFAULT_TAG" default:"managed-by-cert-expiry-mon"`
+	DefaultLocations    []string `envconfig:"SYNTHETICS_DEFAULT_LOCATIONS" default:"aws:ap-northeast-1"`
+	AdditionalEndpoints []string `envconfig:"SYNTHETICS_ADDITIONAL_ENDPOINTS" default:""`
 }
 
 // ParseEnv function sets to Env struct and verify it.

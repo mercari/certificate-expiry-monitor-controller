@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -27,11 +29,12 @@ const (
 
 func TestNewController(t *testing.T) {
 	type testArg struct {
-		logger    *zap.Logger
-		clientSet kubernetes.Interface
-		interval  time.Duration
-		threshold time.Duration
-		notifiers []notifier.Notifier
+		logger      *zap.Logger
+		clientSet   kubernetes.Interface
+		interval    time.Duration
+		threshold   time.Duration
+		notifiers   []notifier.Notifier
+		testManager *synthetics.TestManager
 	}
 	tests := []struct {
 		arg     testArg
@@ -68,7 +71,7 @@ func TestNewController(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, err := NewController(test.arg.logger, test.arg.clientSet, test.arg.interval, test.arg.threshold, test.arg.notifiers)
+		_, err := NewController(test.arg.logger, test.arg.clientSet, test.arg.interval, test.arg.threshold, test.arg.notifiers, test.arg.testManager)
 
 		if (err == nil) != test.success {
 			t.Fatalf("Unexpected result with error: %s", err.Error())
@@ -92,8 +95,10 @@ func TestRun(t *testing.T) {
 	threshold := 24 * time.Hour
 	notifiers := []notifier.Notifier{log.NewNotifier(zap.NewNop())}
 	clientSet := makeTestClientSet(t, []string{u.Hostname()})
+	testManager, err := synthetics.NewTestManager("api_key", "app_key")
+	testManager.Client = nil
 
-	controller, err := NewController(zap.New(core), clientSet, interval, threshold, notifiers)
+	controller, err := NewController(zap.New(core), clientSet, interval, threshold, notifiers, testManager)
 	if err != nil {
 		t.Fatalf("Unexpected falied to initialize controller: %s", err.Error())
 	}
@@ -139,6 +144,8 @@ func TestRunOnce(t *testing.T) {
 	interval := 10 * time.Hour
 	threshold := 48 * time.Hour
 	clientSet := makeTestClientSet(t, []string{u.Hostname()})
+	testManager, _ := synthetics.NewTestManager("api_key", "app_key")
+	testManager.Client = nil
 
 	tests := []struct {
 		arg                time.Time
@@ -176,7 +183,7 @@ func TestRunOnce(t *testing.T) {
 
 		notifiers := []notifier.Notifier{log.NewNotifier(zap.New(core))}
 
-		controller, err := NewController(zap.NewNop(), clientSet, interval, threshold, notifiers)
+		controller, err := NewController(zap.NewNop(), clientSet, interval, threshold, notifiers, testManager)
 		if err != nil {
 			t.Fatalf("Unexpected falied to initialize controller: %s", err.Error())
 		}

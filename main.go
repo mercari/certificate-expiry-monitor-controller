@@ -12,6 +12,7 @@ import (
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/log"
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/slack"
+	synthetics "github.com/mercari/certificate-expiry-monitor-controller/synthetics/datadog"
 
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -72,8 +73,28 @@ func runMain() int {
 		return 1
 	}
 
-	// Create new contoller instance.
-	controller, err := controller.NewController(logger, clientSet, env.VerifyInterval, env.AlertThreshold, notifiers)
+	// Create a new synthetics testManager instance
+	testManager := &synthetics.TestManager{}
+	if env.TestManager {
+		testManager, err = synthetics.NewTestManager(env.DatadogAPIKey, env.DatadogAppKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[ERROR] Failed to create testManager: %s\n", err.Error())
+			return 1
+		}
+		testManager.Logger = logger
+		testManager.CheckInterval = env.CheckInterval
+		testManager.AlertMessage = env.AlertMessage
+		testManager.Tags = env.Tags
+		testManager.DefaultTag = env.DefaultTag
+		testManager.AdditionalEndpoints = env.AdditionalEndpoints
+		testManager.DefaultLocations = env.DefaultLocations
+
+		// Set control flag to prevent running the synthetics logic in the controller when feature-gated
+		testManager.Enabled = true
+	}
+
+	// Create new controller instance.
+	controller, err := controller.NewController(logger, clientSet, env.VerifyInterval, env.AlertThreshold, notifiers, testManager)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create controller: %s\n", err.Error())
 		return 1
