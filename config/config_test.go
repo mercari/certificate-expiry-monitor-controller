@@ -13,19 +13,43 @@ func TestDefaultEnv(t *testing.T) {
 		t.Fatal("Failed to parse env that prepared by testcase")
 	}
 	if env.VerifyInterval != 12*time.Hour {
-		t.Fatal("Unexpeceted default value in INTERVAL")
+		t.Fatal("Unexpected default value in INTERVAL")
 	}
 	if env.AlertThreshold != 336*time.Hour {
-		t.Fatal("Unexpeceted default value in THRESHOLD")
+		t.Fatal("Unexpected default value in THRESHOLD")
 	}
 	if env.LogLevel != "INFO" {
-		t.Fatal("Unexpeceted default value in LOG_LEVEL")
+		t.Fatal("Unexpected default value in LOG_LEVEL")
 	}
 	if env.KubeconfigPath != "" {
-		t.Fatal("Unexpeceted default value in KUBE_CONFIG_PATH")
+		t.Fatal("Unexpected default value in KUBE_CONFIG_PATH")
 	}
 	if len(env.Notifiers) != 1 || env.Notifiers[0] != "log" {
-		t.Fatal("Unexpeceted default value in NOTIFIERS")
+		t.Fatal("Unexpected default value in NOTIFIERS")
+	}
+	if env.DatadogAPIKey != "" {
+		t.Fatal("Unexpected default value in DATADOG_API_KEY")
+	}
+	if env.DatadogAppKey != "" {
+		t.Fatal("Unexpected default value in DATADOG_APPLICATION_KEY")
+	}
+	if env.TestManager {
+		t.Fatal("Unexpected default value in SYNTHETICS_ENABLED")
+	}
+	if env.CheckInterval != 900 {
+		t.Fatal("Unexpected default value in SYNTHETICS_CHECK_INTERVAL")
+	}
+	if env.AlertMessage != "" {
+		t.Fatal("Unexpected default value in SYNTHETICS_ALERT_MESSAGE")
+	}
+	if env.Tags != nil {
+		t.Fatal("Unexpected default value in SYNTHETICS_TAGS")
+	}
+	if env.AdditionalEndpoints != nil {
+		t.Fatal("Unexpected default value in SYNTHETICS_ADDITIONAL_ENDPOINTS")
+	}
+	if env.DefaultLocations == nil {
+		t.Fatal("Unexpected default value in SYNTHETICS_DEFAULT_LOCATIONS")
 	}
 }
 
