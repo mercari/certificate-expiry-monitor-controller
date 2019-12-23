@@ -127,22 +127,6 @@
   revision = "0b417c4ec4a8a82eecc22a1459a504aa55163d61"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ad5d69f9153f0692c662f1efba8ae6c47dcffb30d5e73443b6721a4a49859ec2"
-  name = "github.com/mercari/certificate-expiry-monitor-controller"
-  packages = [
-    "config",
-    "controller",
-    "log",
-    "notifier",
-    "notifier/log",
-    "notifier/slack",
-    "source",
-  ]
-  pruneopts = ""
-  revision = "28d8cfb83f891ea7d30f2d30bcfa430896b756fa"
-
-[[projects]]
   digest = "1:0c0ff2a89c1bb0d01887e1dac043ad7efbf3ec77482ef058ac423d13497e16fd"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
@@ -595,13 +579,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/kelseyhightower/envconfig",
-    "github.com/mercari/certificate-expiry-monitor-controller/config",
-    "github.com/mercari/certificate-expiry-monitor-controller/controller",
-    "github.com/mercari/certificate-expiry-monitor-controller/log",
-    "github.com/mercari/certificate-expiry-monitor-controller/notifier",
-    "github.com/mercari/certificate-expiry-monitor-controller/notifier/log",
-    "github.com/mercari/certificate-expiry-monitor-controller/notifier/slack",
-    "github.com/mercari/certificate-expiry-monitor-controller/source",
     "github.com/nlopes/slack",
     "github.com/zorkian/go-datadog-api",
     "go.uber.org/ratelimit",
