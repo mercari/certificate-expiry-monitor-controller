@@ -1,7 +1,6 @@
 # Certificate Expiry Monitor Controller
 
 [![CircleCI](https://circleci.com/gh/mercari/certificate-expiry-monitor-controller.svg?style=svg)](https://circleci.com/gh/mercari/certificate-expiry-monitor-controller)
-[![codecov](https://codecov.io/gh/mercari/certificate-expiry-monitor-controller/branch/master/graph/badge.svg)](https://codecov.io/gh/mercari/certificate-expiry-monitor-controller)
 
 Certificate Expiry Monitor Controller monitors the expiration of TLS certificates used in Ingress.
 

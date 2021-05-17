@@ -58,10 +58,6 @@ jobs:
           name: Run test and collect coverages
           command: |
             make coverage
-      - run:
-          name: Upload coverages to codecov
-          command: |
-            bash <(curl -s https://codecov.io/bash)
 workflows:
   version: 2
   build-workflow:
