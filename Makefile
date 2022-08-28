@@ -1,9 +1,6 @@
 BINARY = certificate-expiry-monitor-controller
 PACKAGES = $(shell go list ./...)
 
-dep:
-	@dep ensure -v
-
 build:
 	@go build -o $(BINARY)
 
@@ -19,4 +16,4 @@ vet:
 coverage:
 	@go test -v -race -cover -covermode=atomic -coverprofile=coverage.txt $(PACKAGES)
 
-.PHONY: dep build container push test lint vet coverage
+.PHONY: build container push test lint vet coverage

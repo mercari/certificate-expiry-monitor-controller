@@ -13,25 +13,10 @@ jobs:
     <<: *golang
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - vendor-{{ checksum "Gopkg.lock" }}
-      - run:
-          name: Install dpendency tool
-          command: |
-            go get -u github.com/golang/dep/cmd/dep
       - run:
           name: Install dependencies
           command: |
-            make dep
-      - save_cache:
-          key: vendor-{{ checksum "Gopkg.lock" }}
-          paths:
-            - /go/src/github.com/mercari/certificate-expiry-monitor-controller/vendor
-      - persist_to_workspace:
-          root: /go/src/github.com/mercari/certificate-expiry-monitor-controller
-          paths:
-            - "vendor/*"
+            go mod download
       - run:
           name: Check compilation
           command: |
