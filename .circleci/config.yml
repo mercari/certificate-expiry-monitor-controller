@@ -30,7 +30,7 @@ jobs:
       - run:
           name: Install dpendency tool
           command: |
-            go get -u golang.org/x/lint/golint
+            go install golang.org/x/lint/golint
       - run:
           name: Run go vet
           command: |
