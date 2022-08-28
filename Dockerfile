@@ -1,4 +1,4 @@
-FROM golang:1.12
+FROM golang:1.19
 
 WORKDIR /go/src/github.com/mercari/certificate-expiry-monitor-controller
 
