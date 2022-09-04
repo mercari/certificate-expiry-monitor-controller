@@ -17,7 +17,7 @@ import (
 	"github.com/mercari/certificate-expiry-monitor-controller/notifier/log"
 	"github.com/mercari/certificate-expiry-monitor-controller/source"
 
-	"k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -204,17 +204,17 @@ func makeTestClientSet(t *testing.T, availableHosts []string) kubernetes.Interfa
 	t.Helper()
 
 	return fake.NewSimpleClientset(
-		&v1beta1.IngressList{
-			Items: []v1beta1.Ingress{
+		&v1.IngressList{
+			Items: []v1.Ingress{
 				// case: expected
-				v1beta1.Ingress{
+				v1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "ingress1",
 						Namespace:   "namespace1",
 						ClusterName: "clusterName",
 					},
-					Spec: v1beta1.IngressSpec{
-						TLS: []v1beta1.IngressTLS{
+					Spec: v1.IngressSpec{
+						TLS: []v1.IngressTLS{
 							{
 								Hosts:      availableHosts,
 								SecretName: "ingressSecret1",
@@ -223,25 +223,25 @@ func makeTestClientSet(t *testing.T, availableHosts []string) kubernetes.Interfa
 					},
 				},
 				// case: empty TLS
-				v1beta1.Ingress{
+				v1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "ingress2",
 						Namespace:   "namespace2",
 						ClusterName: "clusterName",
 					},
-					Spec: v1beta1.IngressSpec{
-						TLS: []v1beta1.IngressTLS{},
+					Spec: v1.IngressSpec{
+						TLS: []v1.IngressTLS{},
 					},
 				},
 				// case: unreachable host
-				v1beta1.Ingress{
+				v1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "ingress3",
 						Namespace:   "namespace3",
 						ClusterName: "clusterName",
 					},
-					Spec: v1beta1.IngressSpec{
-						TLS: []v1beta1.IngressTLS{
+					Spec: v1.IngressSpec{
+						TLS: []v1.IngressTLS{
 							{
 								Hosts:      []string{dummyURL},
 								SecretName: "ingressSecret3",
@@ -250,14 +250,14 @@ func makeTestClientSet(t *testing.T, availableHosts []string) kubernetes.Interfa
 					},
 				},
 				// case: empty hosts (but TLS enabled)
-				v1beta1.Ingress{
+				v1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "ingress4",
 						Namespace:   "namespace4",
 						ClusterName: "clusterName",
 					},
-					Spec: v1beta1.IngressSpec{
-						TLS: []v1beta1.IngressTLS{
+					Spec: v1.IngressSpec{
+						TLS: []v1.IngressTLS{
 							{
 								Hosts:      []string{},
 								SecretName: "ingressSecret4",

@@ -23,7 +23,7 @@ func NewSource(clientSet kubernetes.Interface) *Source {
 // Ingresses returns list of Ingress that masked unnecessary fields
 // Ingress struct is defined by ingress.go
 func (s *Source) Ingresses() ([]*Ingress, error) {
-	ingressList, err := s.ClientSet.ExtensionsV1beta1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
+	ingressList, err := s.ClientSet.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
