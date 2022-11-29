@@ -137,7 +137,7 @@ func newClientSet(kubeconfigPath string) (*kubernetes.Clientset, error) {
 // Handling syscall.SIGTERM and syscall.SIGINT
 // When trap those, function send message to stopCh
 func handleSignal(stopCh chan struct{}) {
-	signalCh := make(chan os.Signal)
+	signalCh := make(chan os.Signal, 1)
 
 	signal.Notify(signalCh, syscall.SIGTERM)
 	signal.Notify(signalCh, syscall.SIGINT)

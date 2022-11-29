@@ -3,15 +3,15 @@ package source
 import (
 	"testing"
 
-	"k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestIngresses(t *testing.T) {
-	ingressList := v1beta1.IngressList{
-		Items: []v1beta1.Ingress{
-			v1beta1.Ingress{
+	ingressList := v1.IngressList{
+		Items: []v1.Ingress{
+			v1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "ingress1",
 					Namespace:   "namespace1",
@@ -20,8 +20,8 @@ func TestIngresses(t *testing.T) {
 						"protocol": "tls",
 					},
 				},
-				Spec: v1beta1.IngressSpec{
-					TLS: []v1beta1.IngressTLS{
+				Spec: v1.IngressSpec{
+					TLS: []v1.IngressTLS{
 						{
 							Hosts:      []string{"1.example.com"},
 							SecretName: "ingressSecret1",
@@ -29,7 +29,7 @@ func TestIngresses(t *testing.T) {
 					},
 				},
 			},
-			v1beta1.Ingress{
+			v1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "ingress2",
 					Namespace:   "namespace2",
@@ -38,8 +38,8 @@ func TestIngresses(t *testing.T) {
 						"protocol": "http",
 					},
 				},
-				Spec: v1beta1.IngressSpec{
-					TLS: []v1beta1.IngressTLS{
+				Spec: v1.IngressSpec{
+					TLS: []v1.IngressTLS{
 						{
 							Hosts:      []string{"2.example.com"},
 							SecretName: "ingressSecret2",
